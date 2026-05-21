@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AccessGuard – Identity & Access Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f4f3ef;
+      --surface: #ffffff;
+      --surface2: #f9f8f5;
+      --border: #e2e0d8;
+      --border2: #cbc9c0;
+      --navy: #0f1f3d;
+      --navy2: #1a3260;
+      --teal: #0d7a5f;
+      --teal-bg: #e6f5f0;
+      --amber: #b86a0a;
+      --amber-bg: #fef3e2;
+      --red: #b83232;
+      --red-bg: #fdf0f0;
+      --muted: #6b6a64;
+      --muted2: #9e9d97;
+      --text: #1a1917;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'Sora', sans-serif;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* LAYOUT */
+    .app { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
+
+    /* TOPBAR */
+    .topbar {
+      grid-column: 1 / -1;
+      background: var(--navy);
+      padding: 0 24px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .topbar-logo {
+      font-family: var(--mono);
+      font-size: 15px;
+      font-weight: 500;
+      color: #fff;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-dot { width: 8px; height: 8px; background: #3dd9a4; border-radius: 50%; }
+    .topbar-spacer { flex: 1; }
+    .topbar-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.6);
+    }
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+    }
+    .avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--teal);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; color: #fff;
+      font-family: var(--mono);
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      background: var(--navy2);
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sidebar-section {
+      padding: 6px 16px 2px;
+      font-size: 10px;
+      font-family: var(--mono);
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      margin-top: 12px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      color: rgba(255,255,255,0.65);
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      font-size: 13px;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    .nav-item.active {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border-left-color: #3dd9a4;
+    }
+    .nav-icon { font-size: 16px; opacity: 0.8; }
+    .nav-badge {
+      margin-left: auto;
+      background: #3dd9a4;
+      color: var(--navy);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 20px;
+    }
+
+    /* MAIN */
+    .main { padding: 28px 32px; overflow-y: auto; }
+
+    /* PAGE */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* PAGE HEADER */
+    .page-header { margin-bottom: 24px; }
+    .page-title { font-size: 22px; font-weight: 600; color: var(--navy); letter-spacing: -0.3px; }
+    .page-subtitle { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+    /* STAT CARDS */
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .stat-label { font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .stat-value { font-size: 28px; font-weight: 600; color: var(--navy); font-family: var(--mono); margin: 6px 0 4px; line-height: 1; }
+    .stat-trend { font-size: 12px; color: var(--muted2); }
+    .stat-trend.up { color: var(--teal); }
+    .stat-trend.warn { color: var(--amber); }
+    .stat-trend.bad { color: var(--red); }
+
+    /* CARD */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title { font-size: 13px; font-weight: 600; color: var(--navy); }
+    .card-spacer { flex: 1; }
+    .card-body { padding: 0; }
+
+    /* TABLE */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      padding: 10px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafaf7; }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.04em;
+    }
+    .badge-pending { background: var(--amber-bg); color: var(--amber); }
+    .badge-approved, .badge-active, .badge-compliant { background: var(--teal-bg); color: var(--teal); }
+    .badge-rejected, .badge-revoked, .badge-overdue { background: var(--red-bg); color: var(--red); }
+    .badge-review { background: #eff2ff; color: #3547c8; }
+    .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+    /* BUTTONS */
+    .btn {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border2);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: var(--bg); }
+    .btn-approve { border-color: #0d7a5f; color: #0d7a5f; }
+    .btn-approve:hover { background: var(--teal-bg); }
+    .btn-reject { border-color: #b83232; color: #b83232; }
+    .btn-reject:hover { background: var(--red-bg); }
+    .btn-primary { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .btn-primary:hover { background: var(--navy2); }
+    .btn-sm { padding: 3px 10px; font-size: 11px; }
+
+    /* FILTER BAR */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .filter-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-btn:hover { border-color: var(--navy); color: var(--navy); }
+    .filter-btn.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    /* INPUT */
+    .input {
+      font-family: var(--sans);
+      font-size: 13px;
+      padding: 7px 11px;
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input:focus { border-color: var(--navy); }
+    select.input { cursor: pointer; }
+
+    /* AUDIT LOG */
+    .audit-entry {
+      display: flex;
+      gap: 14px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+    .audit-entry:last-child { border-bottom: none; }
+    .audit-time {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted2);
+      min-width: 120px;
+      padding-top: 1px;
+    }
+    .audit-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .audit-content { flex: 1; }
+    .audit-action { font-size: 13px; font-weight: 500; color: var(--text); }
+    .audit-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .audit-actor { font-family: var(--mono); font-size: 11px; color: var(--muted2); margin-top: 3px; }
+
+    /* REVIEW TABLE */
+    .progress-bar { height: 6px; background: var(--border); border-radius: 3px; width: 100px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; background: var(--teal); transition: width 0.5s; }
+    .progress-fill.warn { background: var(--amber); }
+    .progress-fill.bad { background: var(--red); }
+
+    /* FORM */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 18px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-label { font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-actions { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15,31,61,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: 12px;
+      width: 480px;
+      box-shadow: 0 8px 40px rgba(15,31,61,0.15);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+    }
+    .modal-title { font-size: 15px; font-weight: 600; color: var(--navy); }
+    .modal-close { margin-left: auto; cursor: pointer; font-size: 18px; color: var(--muted2); line-height: 1; }
+    .modal-close:hover { color: var(--text); }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--navy);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      transform: translateY(60px);
+      opacity: 0;
+      transition: all 0.25s;
+      z-index: 200;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { background: var(--teal); }
+    .toast.warning { background: var(--amber); }
+
+    /* COMPLIANCE GAUGE */
+    .compliance-section { display: grid; grid-template-columns: 220px 1fr; gap: 0; }
+    .compliance-gauge { padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid var(--border); }
+    .gauge-number { font-family: var(--mono); font-size: 48px; font-weight: 500; color: var(--teal); line-height: 1; }
+    .gauge-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .compliance-list { padding: 16px 20px; }
+    .compliance-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .compliance-row:last-child { border-bottom: none; }
+    .compliance-name { font-size: 13px; flex: 1; }
+    .compliance-status { font-family: var(--mono); font-size: 11px; }
+
+    /* EMPTY STATE */
+    .empty-state { padding: 40px; text-align: center; color: var(--muted2); font-size: 13px; }
+
+    /* SEARCH */
+    .search-wrap { display: flex; align-items: center; gap: 8px; }
+    .search-wrap .input { width: 200px; }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-dot"></div>
+      AccessGuard
+    </div>
+    <div class="topbar-badge">IAM Dashboard v2.4</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-user">
+      <div class="avatar">AK</div>
+      A. Kallas · Admin
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">Overview</div>
+    <div class="nav-item active" onclick="navigate('dashboard', this)">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+
+    <div class="sidebar-section">Access</div>
+    <div class="nav-item" onclick="navigate('requests', this)">
+      <span class="nav-icon">📥</span> Access Requests
+      <span class="nav-badge" id="req-count">3</span>
+    </div>
+    <div class="nav-item" onclick="navigate('users', this)">
+      <span class="nav-icon">👤</span> User Accounts
+    </div>
+    <div class="nav-item" onclick="navigate('review', this)">
+      <span class="nav-icon">🔍</span> Access Review
+      <span class="nav-badge" id="review-count">2</span>
+    </div>
+
+    <div class="sidebar-section">Compliance</div>
+    <div class="nav-item" onclick="navigate('audit', this)">
+      <span class="nav-icon">📋</span> Audit Log
+    </div>
+    <div class="nav-item" onclick="navigate('compliance', this)">
+      <span class="nav-icon">✅</span> Compliance
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <div class="page-subtitle">Access management overview · Last updated just now</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Pending Requests</div>
+          <div class="stat-value" id="stat-pending">3</div>
+          <div class="stat-trend warn">⚡ Requires action</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Users</div>
+          <div class="stat-value">148</div>
+          <div class="stat-trend up">↑ 4 this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Overdue Reviews</div>
+          <div class="stat-value" id="stat-overdue">2</div>
+          <div class="stat-trend bad">⚠ Needs attention</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Compliance Score</div>
+          <div class="stat-value">94%</div>
+          <div class="stat-trend up">↑ 2% this quarter</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Pending Access Requests</div>
+          <div class="card-spacer"></div>
+          <button class="btn btn-sm" onclick="navigate('requests', document.querySelector('.nav-item:nth-child(4)'))">View all</button>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr><th>Requestor</th><th>Resource</th><th>Type</th><th>Submitted</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="dashboard-pending-table"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Recent Activity</div>
+        </div>
+        <div class="card-body">
+          <div id="dashboard-audit-preview"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REQUESTS PAGE -->
+    <div class="page" id="page-requests">
+      <div class="page-header">
+        <div class="page-title">Access Requests</div>
+        <div class="page-subtitle">Manage provisioning and de-provisioning requests</div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">All Requests</div>
+          <div class="card-spacer"></div>
+          <button class="btn btn-primary btn-sm" onclick="openNewRequestModal()">+ New Request</button>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterRequests('all', this)">All</button>
+          <button class="filter-btn" onclick="filterRequests('pending', this)">Pending</button>
+          <button class="filter-btn" onclick="filterRequests('approved', this)">Approved</button>
+          <button class="filter-btn" onclick="filterRequests('rejected', this)">Rejected</button>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Requestor</th><th>Resource</th><th>Access Type</th><th>Submitted</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="requests-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- USERS PAGE -->
+    <div class="page" id="page-users">
+      <div class="page-header">
+        <div class="page-title">User Accounts</div>
+        <div class="page-subtitle">Active accounts and access entitlements</div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Account Directory</div>
+          <div class="card-spacer"></div>
+          <div class="search-wrap">
+            <input class="input" type="text" placeholder="Search users…" oninput="filterUsers(this.value)" />
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Email</th><th>Department</th><th>Role</th><th>Last Login</th><th>Status</th></tr>
+            </thead>
+            <tbody id="users-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REVIEW PAGE -->
+    <div class="page" id="page-review">
+      <div class="page-header">
+        <div class="page-title">Access Review</div>
+        <div class="page-subtitle">Periodic certification of user access rights · Q2 2025 cycle</div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Review Queue</div>
+          <div class="card-spacer"></div>
+          <span class="badge badge-review">Cycle: Q2 2025</span>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr><th>User</th><th>System</th><th>Access Level</th><th>Last Certified</th><th>Progress</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody id="review-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT LOG PAGE -->
+    <div class="page" id="page-audit">
+      <div class="page-header">
+        <div class="page-title">Audit Log</div>
+        <div class="page-subtitle">Immutable record of all access management events</div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Event History</div>
+          <div class="card-spacer"></div>
+          <select class="input" style="width:160px" onchange="filterAudit(this.value)">
+            <option value="all">All events</option>
+            <option value="grant">Access Granted</option>
+            <option value="revoke">Access Revoked</option>
+            <option value="review">Review Actions</option>
+            <option value="system">System Events</option>
+          </select>
+        </div>
+        <div class="card-body" id="audit-log-body"></div>
+      </div>
+    </div>
+
+    <!-- COMPLIANCE PAGE -->
+    <div class="page" id="page-compliance">
+      <div class="page-header">
+        <div class="page-title">Compliance</div>
+        <div class="page-subtitle">Policy adherence and security standards monitoring</div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Overall Score</div>
+          <div class="stat-value" style="color:var(--teal)">94%</div>
+          <div class="stat-trend up">↑ from 92% last quarter</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Policies Met</div>
+          <div class="stat-value">17/18</div>
+          <div class="stat-trend warn">1 exception active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">MFA Adoption</div>
+          <div class="stat-value">96%</div>
+          <div class="stat-trend up">143 of 148 users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Orphaned Accounts</div>
+          <div class="stat-value" style="color:var(--red)">2</div>
+          <div class="stat-trend bad">Requires remediation</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Policy Compliance Status</div></div>
+        <div class="card-body">
+          <div class="compliance-section">
+            <div class="compliance-gauge">
+              <div class="gauge-number">94%</div>
+              <div class="gauge-label">Compliance Score</div>
+            </div>
+            <div class="compliance-list" id="compliance-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- NEW REQUEST MODAL -->
+<div class="modal-overlay" id="new-request-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Access Request</div>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Requestor Name</label>
+        <input class="input" type="text" id="req-name" placeholder="Full name" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Department</label>
+        <select class="input" id="req-dept">
+          <option>IT</option><option>HR</option><option>Finance</option>
+          <option>Logistics</option><option>Retail Operations</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Resource / System</label>
+        <select class="input" id="req-resource">
+          <option>SAP ERP</option><option>ServiceNow</option><option>SharePoint</option>
+          <option>Active Directory</option><option>Warehouse Management</option>
+          <option>Finance Portal</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Access Type</label>
+        <select class="input" id="req-type">
+          <option>Read</option><option>Read / Write</option><option>Admin</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Business Justification</label>
+        <input class="input" type="text" id="req-justification" placeholder="Describe the business need…" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── DATA ────────────────────────────────────────────────────────────────────
+  let requests = [
+    { id: 'REQ-041', name: 'Marta Lepp', dept: 'Finance', resource: 'SAP ERP', type: 'Read / Write', date: '2025-05-19', status: 'pending' },
+    { id: 'REQ-042', name: 'Jüri Tamm', dept: 'Logistics', resource: 'Warehouse Management', type: 'Read', date: '2025-05-20', status: 'pending' },
+    { id: 'REQ-043', name: 'Katrin Saar', dept: 'HR', resource: 'Active Directory', type: 'Admin', date: '2025-05-20', status: 'pending' },
+    { id: 'REQ-038', name: 'Andres Kask', dept: 'IT', resource: 'ServiceNow', type: 'Admin', date: '2025-05-15', status: 'approved' },
+    { id: 'REQ-039', name: 'Liis Mägi', dept: 'Finance', resource: 'Finance Portal', type: 'Read', date: '2025-05-16', status: 'approved' },
+    { id: 'REQ-040', name: 'Peeter Rand', dept: 'Retail Operations', resource: 'SharePoint', type: 'Read / Write', date: '2025-05-17', status: 'rejected' },
+  ];
+
+  const users = [
+    { name: 'Andres Kallas', email: 'a.kallas@company.ee', dept: 'IT', role: 'IAM Administrator', login: '2025-05-21', status: 'active' },
+    { name: 'Marta Lepp', email: 'm.lepp@company.ee', dept: 'Finance', role: 'Finance Analyst', login: '2025-05-21', status: 'active' },
+    { name: 'Jüri Tamm', email: 'j.tamm@company.ee', dept: 'Logistics', role: 'Logistics Coordinator', login: '2025-05-20', status: 'active' },
+    { name: 'Katrin Saar', email: 'k.saar@company.ee', dept: 'HR', role: 'HR Manager', login: '2025-05-19', status: 'active' },
+    { name: 'Liis Mägi', email: 'l.magi@company.ee', dept: 'Finance', role: 'Senior Accountant', login: '2025-05-21', status: 'active' },
+    { name: 'Peeter Rand', email: 'p.rand@company.ee', dept: 'Retail Ops', role: 'Store Manager', login: '2025-05-18', status: 'active' },
+    { name: 'old.account', email: 'inactive@company.ee', dept: 'IT', role: 'Contractor', login: '2024-11-01', status: 'revoked' },
+    { name: 'test.user', email: 'test@company.ee', dept: '—', role: 'Test Account', login: '2024-08-12', status: 'revoked' },
+  ];
+
+  let reviewItems = [
+    { user: 'Andres Kallas', system: 'Active Directory', level: 'Domain Admin', certified: '2024-11-15', progress: 100, status: 'compliant' },
+    { user: 'Marta Lepp', system: 'SAP ERP', level: 'Read / Write', certified: '2024-11-15', progress: 100, status: 'compliant' },
+    { user: 'Jüri Tamm', system: 'Warehouse Management', level: 'Read', certified: '2024-08-01', progress: 30, status: 'overdue' },
+    { user: 'Katrin Saar', system: 'Active Directory', level: 'Admin', certified: '2024-09-10', progress: 50, status: 'overdue' },
+    { user: 'Liis Mägi', system: 'Finance Portal', level: 'Read', certified: '2025-01-20', progress: 100, status: 'compliant' },
+  ];
+
+  let auditLog = [
+    { time: '2025-05-21 14:32', type: 'grant', action: 'Access granted', detail: 'Liis Mägi → Finance Portal (Read)', actor: 'a.kallas · auto-provisioned', color: '#0d7a5f' },
+    { time: '2025-05-21 11:17', type: 'system', action: 'Scheduled review triggered', detail: 'Q2 2025 access certification cycle started', actor: 'system · scheduler', color: '#3547c8' },
+    { time: '2025-05-20 16:44', type: 'revoke', action: 'Access revoked', detail: 'test.user → all systems (account disabled)', actor: 'a.kallas · manual', color: '#b83232' },
+    { time: '2025-05-20 09:55', type: 'grant', action: 'Access granted', detail: 'Andres Kask → ServiceNow (Admin)', actor: 'a.kallas · approved request REQ-038', color: '#0d7a5f' },
+    { time: '2025-05-19 15:10', type: 'review', action: 'Access recertified', detail: 'Marta Lepp · SAP ERP — certified by m.lepp manager', actor: 'k.saar · quarterly review', color: '#3547c8' },
+    { time: '2025-05-17 10:30', type: 'revoke', action: 'Request rejected', detail: 'Peeter Rand → SharePoint (Read/Write) — insufficient justification', actor: 'a.kallas · manual review', color: '#b83232' },
+    { time: '2025-05-16 08:14', type: 'system', action: 'MFA policy enforced', detail: '5 accounts prompted for MFA enrollment', actor: 'system · policy engine', color: '#3547c8' },
+    { time: '2025-05-15 17:00', type: 'review', action: 'Review overdue alert', detail: 'Jüri Tamm · Warehouse Management — 90 days since last cert', actor: 'system · compliance monitor', color: '#b86a0a' },
+  ];
+
+  const complianceItems = [
+    { name: 'Multi-Factor Authentication (MFA) enforcement', status: 'compliant' },
+    { name: 'Quarterly access review completion', status: 'overdue' },
+    { name: 'Privileged access monitoring', status: 'compliant' },
+    { name: 'Orphaned account remediation (< 90 days)', status: 'compliant' },
+    { name: 'Separation of duties (SoD)', status: 'compliant' },
+    { name: 'Password policy compliance', status: 'compliant' },
+    { name: 'Access provisioning SLA (< 48h)', status: 'compliant' },
+  ];
+
+  let requestFilter = 'all';
+  let auditFilter = 'all';
+
+  // ── NAVIGATION ──────────────────────────────────────────────────────────────
+  function navigate(page, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    if (el) el.classList.add('active');
+    renderPage(page);
+  }
+
+  function renderPage(page) {
+    if (page === 'requests') renderRequests();
+    if (page === 'users') renderUsers(users);
+    if (page === 'review') renderReview();
+    if (page === 'audit') renderAudit();
+    if (page === 'compliance') renderCompliance();
+    if (page === 'dashboard') renderDashboard();
+  }
+
+  // ── RENDER DASHBOARD ────────────────────────────────────────────────────────
+  function renderDashboard() {
+    const pending = requests.filter(r => r.status === 'pending');
+    document.getElementById('stat-pending').textContent = pending.length;
+    const overdue = reviewItems.filter(r => r.status === 'overdue').length;
+    document.getElementById('stat-overdue').textContent = overdue;
+    document.getElementById('req-count').textContent = pending.length;
+    document.getElementById('review-count').textContent = overdue;
+
+    const tbody = document.getElementById('dashboard-pending-table');
+    tbody.innerHTML = pending.length ? pending.map(r => `
+      <tr>
+        <td><strong>${r.name}</strong><br><span style="color:var(--muted);font-size:11px">${r.dept}</span></td>
+        <td>${r.resource}</td>
+        <td><span class="badge badge-pending">${r.type}</span></td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${r.date}</td>
+        <td>
+          <button class="btn btn-approve btn-sm" onclick="approveRequest('${r.id}')">Approve</button>
+          &nbsp;
+          <button class="btn btn-reject btn-sm" onclick="rejectRequest('${r.id}')">Reject</button>
+        </td>
+      </tr>
+    `).join('') : '<tr><td colspan="5" class="empty-state">No pending requests</td></tr>';
+
+    const preview = document.getElementById('dashboard-audit-preview');
+    preview.innerHTML = auditLog.slice(0, 4).map(e => `
+      <div class="audit-entry">
+        <div class="audit-time">${e.time}</div>
+        <div class="audit-dot" style="background:${e.color}"></div>
+        <div class="audit-content">
+          <div class="audit-action">${e.action}</div>
+          <div class="audit-detail">${e.detail}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── RENDER REQUESTS ─────────────────────────────────────────────────────────
+  function renderRequests() {
+    const filtered = requestFilter === 'all' ? requests : requests.filter(r => r.status === requestFilter);
+    const tbody = document.getElementById('requests-table');
+    tbody.innerHTML = filtered.map(r => `
+      <tr>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${r.id}</td>
+        <td><strong>${r.name}</strong><br><span style="font-size:11px;color:var(--muted)">${r.dept}</span></td>
+        <td>${r.resource}</td>
+        <td>${r.type}</td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${r.date}</td>
+        <td><span class="badge badge-${r.status}"><span class="badge-dot"></span>${r.status}</span></td>
+        <td>
+          ${r.status === 'pending' ? `
+            <button class="btn btn-approve btn-sm" onclick="approveRequest('${r.id}')">Approve</button>
+            &nbsp;
+            <button class="btn btn-reject btn-sm" onclick="rejectRequest('${r.id}')">Reject</button>
+          ` : `<span style="font-size:12px;color:var(--muted2)">—</span>`}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function filterRequests(status, btn) {
+    requestFilter = status;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderRequests();
+  }
+
+  function approveRequest(id) {
+    const req = requests.find(r => r.id === id);
+    if (!req) return;
+    req.status = 'approved';
+    auditLog.unshift({
+      time: now(), type: 'grant',
+      action: 'Access granted',
+      detail: `${req.name} → ${req.resource} (${req.type})`,
+      actor: 'a.kallas · approved via dashboard',
+      color: '#0d7a5f'
+    });
+    showToast(`✓ Access approved for ${req.name}`, 'success');
+    renderDashboard();
+    renderRequests();
+  }
+
+  function rejectRequest(id) {
+    const req = requests.find(r => r.id === id);
+    if (!req) return;
+    req.status = 'rejected';
+    auditLog.unshift({
+      time: now(), type: 'revoke',
+      action: 'Request rejected',
+      detail: `${req.name} → ${req.resource} — rejected by admin`,
+      actor: 'a.kallas · manual review',
+      color: '#b83232'
+    });
+    showToast(`Request rejected for ${req.name}`, 'warning');
+    renderDashboard();
+    renderRequests();
+  }
+
+  // ── RENDER USERS ─────────────────────────────────────────────────────────────
+  function renderUsers(list) {
+    const tbody = document.getElementById('users-table');
+    tbody.innerHTML = list.map(u => `
+      <tr>
+        <td><strong>${u.name}</strong></td>
+        <td style="font-family:var(--mono);font-size:12px">${u.email}</td>
+        <td>${u.dept}</td>
+        <td>${u.role}</td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${u.login}</td>
+        <td><span class="badge badge-${u.status}"><span class="badge-dot"></span>${u.status}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function filterUsers(query) {
+    const q = query.toLowerCase();
+    renderUsers(users.filter(u =>
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      u.dept.toLowerCase().includes(q) ||
+      u.role.toLowerCase().includes(q)
+    ));
+  }
+
+  // ── RENDER REVIEW ────────────────────────────────────────────────────────────
+  function renderReview() {
+    const tbody = document.getElementById('review-table');
+    tbody.innerHTML = reviewItems.map((item, i) => `
+      <tr>
+        <td><strong>${item.user}</strong></td>
+        <td>${item.system}</td>
+        <td><span style="font-family:var(--mono);font-size:12px">${item.level}</span></td>
+        <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${item.certified}</td>
+        <td>
+          <div class="progress-bar">
+            <div class="progress-fill ${item.progress < 60 ? 'bad' : item.progress < 100 ? 'warn' : ''}" style="width:${item.progress}%"></div>
+          </div>
+        </td>
+        <td><span class="badge badge-${item.status}"><span class="badge-dot"></span>${item.status}</span></td>
+        <td>
+          ${item.status !== 'compliant' ? `<button class="btn btn-approve btn-sm" onclick="certifyItem(${i})">Certify</button>` : `<span style="font-size:12px;color:var(--muted2)">Done</span>`}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function certifyItem(i) {
+    reviewItems[i].status = 'compliant';
+    reviewItems[i].progress = 100;
+    reviewItems[i].certified = now().split(' ')[0];
+    auditLog.unshift({
+      time: now(), type: 'review',
+      action: 'Access recertified',
+      detail: `${reviewItems[i].user} · ${reviewItems[i].system} — certified by admin`,
+      actor: 'a.kallas · quarterly review',
+      color: '#3547c8'
+    });
+    showToast(`✓ Access certified for ${reviewItems[i].user}`, 'success');
+    document.getElementById('review-count').textContent = reviewItems.filter(r => r.status === 'overdue').length;
+    renderReview();
+    renderDashboard();
+  }
+
+  // ── RENDER AUDIT ─────────────────────────────────────────────────────────────
+  function renderAudit() {
+    const filtered = auditFilter === 'all' ? auditLog : auditLog.filter(e => e.type === auditFilter);
+    document.getElementById('audit-log-body').innerHTML = filtered.map(e => `
+      <div class="audit-entry">
+        <div class="audit-time">${e.time}</div>
+        <div class="audit-dot" style="background:${e.color}"></div>
+        <div class="audit-content">
+          <div class="audit-action">${e.action}</div>
+          <div class="audit-detail">${e.detail}</div>
+          <div class="audit-actor">${e.actor}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterAudit(type) {
+    auditFilter = type;
+    renderAudit();
+  }
+
+  // ── RENDER COMPLIANCE ────────────────────────────────────────────────────────
+  function renderCompliance() {
+    document.getElementById('compliance-list').innerHTML = complianceItems.map(c => `
+      <div class="compliance-row">
+        <div class="compliance-name">${c.name}</div>
+        <span class="badge badge-${c.status}"><span class="badge-dot"></span>${c.status}</span>
+      </div>
+    `).join('');
+  }
+
+  // ── MODAL ────────────────────────────────────────────────────────────────────
+  function openNewRequestModal() {
+    document.getElementById('new-request-modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('new-request-modal').classList.remove('open');
+  }
+  function submitRequest() {
+    const name = document.getElementById('req-name').value.trim();
+    const dept = document.getElementById('req-dept').value;
+    const resource = document.getElementById('req-resource').value;
+    const type = document.getElementById('req-type').value;
+    if (!name) { showToast('Please enter a requestor name'); return; }
+    const newId = 'REQ-' + String(parseInt(requests[0].id.split('-')[1]) + 1).padStart(3, '0');
+    requests.unshift({ id: newId, name, dept, resource, type, date: now().split(' ')[0], status: 'pending' });
+    closeModal();
+    showToast(`✓ Request ${newId} submitted`, 'success');
+    renderRequests();
+    renderDashboard();
+    document.getElementById('req-name').value = '';
+    document.getElementById('req-justification').value = '';
+  }
+
+  // ── UTILS ────────────────────────────────────────────────────────────────────
+  function now() {
+    const d = new Date();
+    return d.toISOString().replace('T', ' ').slice(0, 16);
+  }
+
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (type ? ' ' + type : '');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // Init
+  renderDashboard();
+</script>
+</body>
+</html>
