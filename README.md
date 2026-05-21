@@ -4,7 +4,7 @@ A lightweight, browser-based **Identity & Access Management (IAM)** demo dashboa
 
 Designed to illustrate core IAM workflows relevant to modern enterprise access control — including access request lifecycle management, periodic access reviews, audit logging, and compliance monitoring.
 
-> Live demo: [GitHub Pages](https://yourusername.github.io/access-management-dashboard/)
+> Live demo: [GitHub Pages](https://pavluntiyj.github.io/Dashboard/)
 
 ---
 
@@ -31,6 +31,13 @@ Designed to illustrate core IAM workflows relevant to modern enterprise access c
 - **Orphaned Account Detection** – inactive accounts surfaced for remediation
 
 These principles align with ISO 27001, SOC 2, and common enterprise IAM frameworks.
+
+---
+
+## Screenshot
+
+<img width="1919" height="888" alt="Screenshot_20260521_232230" src="https://github.com/user-attachments/assets/4cd5b501-fc61-4a66-8144-1a77857157fa" />
+
 
 ---
 
